@@ -1,0 +1,92 @@
+<div class="dashboard-container fade-in">
+  <div class="dashboard-header">
+    <h1 class="page-title">Financial Dashboard</h1>
+    <p class="page-subtitle">Welcome back, {{ apiService.getUserName() }}</p>
+  </div>
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Compiling your financial aggregates...</p>
+  </div>
+
+  <div *ngIf="!loading && dashboardData" class="dashboard-content">
+    <!-- Stat Cards Grid -->
+    <div class="stats-grid">
+      <div class="stat-card glass-panel">
+        <span class="stat-label">Net Worth</span>
+        <span class="stat-val gradient-text">₹{{ dashboardData.netWorth | number:'1.2-2' }}</span>
+        <span class="stat-desc">Cash + Portfolios</span>
+      </div>
+
+      <div class="stat-card glass-panel">
+        <span class="stat-label">Portfolio Value</span>
+        <span class="stat-val text-cyan">₹{{ dashboardData.portfolioValue | number:'1.2-2' }}</span>
+        <span class="stat-desc">Live Stock Holdings</span>
+      </div>
+
+      <div class="stat-card glass-panel">
+        <span class="stat-label">Income (This Month)</span>
+        <span class="stat-val text-emerald">₹{{ dashboardData.totalIncome | number:'1.2-2' }}</span>
+        <span class="stat-desc">Total Inflow</span>
+      </div>
+
+      <div class="stat-card glass-panel">
+        <span class="stat-label">Expenses (This Month)</span>
+        <span class="stat-val text-red">₹{{ dashboardData.totalExpense | number:'1.2-2' }}</span>
+        <span class="stat-desc">Total Outflow</span>
+      </div>
+
+      <div class="stat-card glass-panel">
+        <span class="stat-label">Net Savings</span>
+        <span class="stat-val" [ngClass]="dashboardData.netSavings >= 0 ? 'text-emerald' : 'text-red'">
+          ₹{{ dashboardData.netSavings | number:'1.2-2' }}
+        </span>
+        <span class="stat-desc">Inflow - Outflow</span>
+      </div>
+
+      <div class="stat-card glass-panel">
+        <span class="stat-label">Remaining Budget</span>
+        <span class="stat-val" [ngClass]="dashboardData.budgetRemaining >= 0 ? 'text-cyan' : 'text-red'">
+          ₹{{ dashboardData.budgetRemaining | number:'1.2-2' }}
+        </span>
+        <span class="stat-desc">Limit: ₹{{ dashboardData.budgetLimit | number:'1.2-2' }}</span>
+      </div>
+    </div>
+
+    <!-- Charts Panel -->
+    <div class="charts-grid">
+      <div class="chart-card glass-panel flex-2">
+        <h3 class="chart-title">Income vs Expenses (Past 6 Months)</h3>
+        <div class="canvas-wrapper">
+          <canvas #cashFlowCanvas></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card glass-panel flex-1">
+        <h3 class="chart-title">Expense Distribution</h3>
+        <div class="canvas-wrapper">
+          <canvas #categoryCanvas></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category Summary Breakdown -->
+    <div class="summary-section glass-panel">
+      <h3 class="section-title">Expense Breakdown by Category</h3>
+      
+      <div *ngIf="dashboardData.categoryDistribution.length === 0" class="empty-message">
+        No expenses recorded in the current month.
+      </div>
+
+      <div *ngIf="dashboardData.categoryDistribution.length > 0" class="breakdown-list">
+        <div *ngFor="let item of dashboardData.categoryDistribution" class="breakdown-row">
+          <span class="breakdown-name">{{ item.categoryName }}</span>
+          <div class="breakdown-bar-wrapper">
+            <div class="breakdown-bar" [style.width.%]="(item.amount / dashboardData.totalExpense) * 100"></div>
+          </div>
+          <span class="breakdown-amount">₹{{ item.amount | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

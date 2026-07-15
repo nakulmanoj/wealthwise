@@ -1,0 +1,192 @@
+<div class="investments-container fade-in">
+  <div class="investments-header">
+    <div>
+      <h1 class="page-title">Investment Portfolio</h1>
+      <p class="page-subtitle">Monitor and scale your stock and ETF holdings</p>
+    </div>
+    <div class="header-actions">
+      <button (click)="openAddModal()" class="btn-primary">Add Asset</button>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert-message danger">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Calculating portfolio values...</p>
+  </div>
+
+  <div *ngIf="!loading">
+    <!-- Portfolio Summary Cards -->
+    <div class="portfolio-summary-grid">
+      <div class="summary-card glass-panel">
+        <span class="card-label">Portfolio Value</span>
+        <span class="card-val text-cyan">₹{{ totalValue | number:'1.2-2' }}</span>
+        <span class="card-desc">Current Market Valuation</span>
+      </div>
+
+      <div class="summary-card glass-panel">
+        <span class="card-label">Total Cost Basis</span>
+        <span class="card-val text-secondary">₹{{ totalCost | number:'1.2-2' }}</span>
+        <span class="card-desc">Invested Amount</span>
+      </div>
+
+      <div class="summary-card glass-panel">
+        <span class="card-label">Total Return</span>
+        <span class="card-val" [ngClass]="totalProfitLoss >= 0 ? 'text-emerald' : 'text-red'">
+          {{ totalProfitLoss >= 0 ? '+' : '' }}₹{{ totalProfitLoss | number:'1.2-2' }}
+        </span>
+        <span class="card-desc" [ngClass]="totalProfitLoss >= 0 ? 'text-emerald' : 'text-red'">
+          {{ totalProfitLoss >= 0 ? '+' : '' }}{{ totalProfitPercent | number:'1.2-2' }}%
+        </span>
+      </div>
+    </div>
+
+    <!-- Holdings Content Layout -->
+    <div *ngIf="investments.length === 0" class="table-card glass-panel">
+      <div class="empty-state">
+        <p>No investments recorded in your portfolio.</p>
+        <button (click)="openAddModal()" class="btn-primary mt-16">Add Your First Asset</button>
+      </div>
+    </div>
+
+    <div *ngIf="investments.length > 0" class="holdings-layout-grid">
+      <!-- Left Column: Table Card -->
+      <div class="table-card glass-panel">
+        <div class="table-container">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Quantity</th>
+                <th>Avg Buy Price</th>
+                <th>Current Price</th>
+                <th>Total Cost</th>
+                <th>Current Value</th>
+                <th>Profit / Loss</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let inv of investments">
+                <td>
+                  <div class="asset-identity">
+                    <span class="asset-symbol">{{ inv.symbol }}</span>
+                    <span class="asset-name text-secondary">{{ inv.name }}</span>
+                  </div>
+                </td>
+                <td>{{ inv.quantity | number:'1.4-4' }}</td>
+                <td>₹{{ inv.averageBuyPrice | number:'1.2-2' }}</td>
+                <td>₹{{ inv.currentPrice | number:'1.2-2' }}</td>
+                <td>₹{{ inv.totalCost | number:'1.2-2' }}</td>
+                <td class="font-semibold">₹{{ inv.currentValue | number:'1.2-2' }}</td>
+                <td class="font-semibold" [ngClass]="inv.profitLoss >= 0 ? 'text-emerald' : 'text-red'">
+                  {{ inv.profitLoss >= 0 ? '+' : '' }}₹{{ inv.profitLoss | number:'1.2-2' }}
+                  <span class="percent-label">
+                    ({{ inv.profitLoss >= 0 ? '+' : '' }}{{ inv.profitLossPercentage | number:'1.2-2' }}%)
+                  </span>
+                </td>
+                <td class="text-right actions-cell">
+                  <button (click)="openEditModal(inv)" class="btn-action edit" title="Edit Manual">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button (click)="deleteInvestment(inv.id)" class="btn-action delete" title="Sell/Delete">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Right Column: Asset Allocation Doughnut Chart -->
+      <div class="chart-card glass-panel">
+        <h3 class="chart-title">Asset Allocation</h3>
+        <div class="canvas-wrapper">
+          <canvas #allocationCanvas></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Add/Edit Asset Modal -->
+  <div class="modal-overlay" *ngIf="showModal">
+    <div class="modal-card glass-panel">
+      <div class="modal-header">
+        <h2 class="modal-title">{{ isEditMode ? 'Modify Asset Record' : 'Add Investment Asset' }}</h2>
+        <button (click)="closeModal()" class="close-btn">&times;</button>
+      </div>
+
+      <form (ngSubmit)="saveInvestment()">
+        <div *ngIf="modalErrorMessage" class="alert-message danger">
+          {{ modalErrorMessage }}
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">Ticker Symbol</label>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="e.g. AAPL"
+              [(ngModel)]="invForm.symbol"
+              name="symbol"
+              [disabled]="isEditMode"
+              required
+            />
+          </div>
+
+          <div class="form-group flex-2">
+            <label class="form-label">Asset Name</label>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="e.g. Apple Inc."
+              [(ngModel)]="invForm.name"
+              name="name"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">Shares Quantity</label>
+            <input
+              type="number"
+              class="form-control"
+              placeholder="0.0000"
+              step="0.0001"
+              [(ngModel)]="invForm.quantity"
+              name="quantity"
+              required
+            />
+          </div>
+
+          <div class="form-group flex-1">
+            <label class="form-label">Average Buy Price (₹)</label>
+            <input
+              type="number"
+              class="form-control"
+              placeholder="0.00"
+              step="0.01"
+              [(ngModel)]="invForm.averageBuyPrice"
+              name="averageBuyPrice"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" (click)="closeModal()" class="btn-secondary">Cancel</button>
+          <button type="submit" class="btn-primary">Save Asset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

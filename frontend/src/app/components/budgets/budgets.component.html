@@ -1,0 +1,174 @@
+<div class="budgets-container fade-in">
+  <div class="budgets-header">
+    <div>
+      <h1 class="page-title">Monthly Budgets</h1>
+      <p class="page-subtitle">Set category thresholds and prevent overspending</p>
+    </div>
+    <div class="header-actions">
+      <div class="date-pickers">
+        <select class="form-control date-select" [(ngModel)]="selectedMonth" (change)="loadBudgets()">
+          <option *ngFor="let m of monthsList" [value]="m.value">{{ m.name }}</option>
+        </select>
+        <select class="form-control date-select" [(ngModel)]="selectedYear" (change)="loadBudgets()">
+          <option *ngFor="let y of yearsList" [value]="y">{{ y }}</option>
+        </select>
+      </div>
+      <button (click)="openAddModal()" class="btn-primary">Set Budget</button>
+    </div>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert-message danger">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Budget Cards Grid -->
+  <div *ngIf="budgets.length === 0" class="empty-state glass-panel">
+    <p>No budgets configured for the selected month.</p>
+    <button (click)="openAddModal()" class="btn-primary mt-16">Create First Budget</button>
+  </div>
+
+  <div *ngIf="budgets.length > 0" class="budgets-grid">
+    <div *ngFor="let b of budgets" class="budget-card glass-panel" [class.alert-active]="b.isAlertActive">
+      
+      <!-- Card Header -->
+      <div class="card-header">
+        <div class="card-title-group">
+          <h3 class="category-name">{{ b.category?.name || 'Uncategorized' }}</h3>
+          <span *ngIf="b.isAlertActive" class="alert-badge" [class.danger]="b.spent >= b.amount">
+            {{ b.spent >= b.amount ? 'Limit Exceeded' : 'Approaching Limit' }}
+          </span>
+        </div>
+        <div class="card-actions">
+          <button (click)="openEditModal(b)" class="btn-action" title="Edit">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button (click)="deleteBudget(b.id)" class="btn-action" title="Delete">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Card Body -->
+      <div class="card-body">
+        <div class="amount-row">
+          <div class="amount-col">
+            <span class="amount-label">Spent</span>
+            <span class="amount-val text-white">₹{{ b.spent | number:'1.2-2' }}</span>
+          </div>
+          <div class="amount-col text-center">
+            <span class="amount-label">Limit</span>
+            <span class="amount-val text-secondary">₹{{ b.amount | number:'1.2-2' }}</span>
+          </div>
+          <div class="amount-col text-right">
+            <span class="amount-label">Remaining</span>
+            <span class="amount-val" [ngClass]="b.remaining >= 0 ? 'text-cyan' : 'text-red'">
+              ₹{{ b.remaining | number:'1.2-2' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container">
+          <div class="progress-bar"
+               [ngClass]="getProgressBarColorClass(b.spent, b.amount)"
+               [style.width.%]="getPercent(b.spent, b.amount)">
+          </div>
+        </div>
+        
+        <div class="progress-footer">
+          <span>{{ getPercent(b.spent, b.amount) }}% Consumed</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Budget Modal -->
+  <div class="modal-overlay" *ngIf="showModal">
+    <div class="modal-card glass-panel">
+      <div class="modal-header">
+        <h2 class="modal-title">{{ isEditMode ? 'Edit Budget Threshold' : 'Set Budget Limit' }}</h2>
+        <button (click)="closeModal()" class="close-btn">&times;</button>
+      </div>
+
+      <form (ngSubmit)="saveBudget()">
+        <div *ngIf="modalErrorMessage" class="alert-message danger">
+          {{ modalErrorMessage }}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            Category
+            <span class="new-category-link" (click)="openCategoryModal()">+ New Category</span>
+          </label>
+          <select class="form-control" [(ngModel)]="budgetForm.categoryId" name="catId" [disabled]="isEditMode" required>
+            <option value="" disabled>Select Expense Category</option>
+            <option *ngFor="let cat of expenseCategories" [value]="cat.id">
+              {{ cat.name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Budget Limit (₹)</label>
+          <input
+            type="number"
+            class="form-control"
+            placeholder="0.00"
+            step="0.01"
+            [(ngModel)]="budgetForm.amount"
+            name="amount"
+            required
+          />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">Month</label>
+            <select class="form-control" [(ngModel)]="budgetForm.month" name="month" [disabled]="isEditMode" required>
+              <option *ngFor="let m of monthsList" [value]="m.value">{{ m.name }}</option>
+            </select>
+          </div>
+
+          <div class="form-group flex-1">
+            <label class="form-label">Year</label>
+            <select class="form-control" [(ngModel)]="budgetForm.year" name="year" [disabled]="isEditMode" required>
+              <option *ngFor="let y of yearsList" [value]="y">{{ y }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" (click)="closeModal()" class="btn-secondary">Cancel</button>
+          <button type="submit" class="btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Create Category Modal -->
+  <div class="modal-overlay" *ngIf="showCategoryModal">
+    <div class="modal-card glass-panel small-modal">
+      <div class="modal-header">
+        <h2 class="modal-title">New Expense Category</h2>
+        <button (click)="closeCategoryModal()" class="close-btn">&times;</button>
+      </div>
+      <form (ngSubmit)="saveCategory()">
+        <div class="form-group">
+          <label class="form-label">Category Name</label>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="e.g. Gym Membership"
+            [(ngModel)]="catForm.name"
+            name="catName"
+            required
+          />
+        </div>
+        <div class="modal-actions">
+          <button type="button" (click)="closeCategoryModal()" class="btn-secondary">Cancel</button>
+          <button type="submit" class="btn-primary">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

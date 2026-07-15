@@ -1,0 +1,249 @@
+<div class="transactions-container fade-in">
+  <div class="transactions-header">
+    <div>
+      <h1 class="page-title">Transactions</h1>
+      <p class="page-subtitle">Track and filter your inflows and outflows</p>
+    </div>
+    <div class="header-actions">
+      <button (click)="openAddModal()" class="btn-primary">Add Transaction</button>
+    </div>
+  </div>
+
+  <!-- Filters Panel -->
+  <div class="filters-panel glass-panel">
+    <div class="filters-grid">
+      <div class="form-group">
+        <label class="form-label">Search Description</label>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="e.g. Groceries"
+          [(ngModel)]="filters.description"
+          (input)="applyFilters()"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Transaction Type</label>
+        <select class="form-control" [(ngModel)]="filters.type" (change)="applyFilters()">
+          <option value="">All Types</option>
+          <option value="INCOME">Income</option>
+          <option value="EXPENSE">Expense</option>
+          <option value="TRANSFER">Transfer</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-control" [(ngModel)]="filters.categoryId" (change)="applyFilters()">
+          <option value="">All Categories</option>
+          <option *ngFor="let cat of categories" [value]="cat.id">
+            {{ cat.name }} ({{ cat.type | titlecase }})
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Transaction Date</label>
+        <input
+          type="date"
+          class="form-control"
+          [(ngModel)]="selectedDate"
+          (change)="onDateChange()"
+        />
+      </div>
+
+      <div class="form-group filter-actions-group">
+        <button (click)="resetFilters()" class="btn-secondary reset-btn">Reset Filters</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="table-card glass-panel">
+    <div *ngIf="transactions.length === 0" class="empty-state">
+      <p>No transactions found matching your criteria.</p>
+    </div>
+
+    <div *ngIf="transactions.length > 0" class="table-container">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let tx of transactions">
+            <td>{{ tx.date | date:'yyyy-MM-dd' }}</td>
+            <td class="font-medium">{{ tx.description || 'No Description' }}</td>
+
+            <td>
+              <span class="type-pill" [ngClass]="tx.type.toLowerCase()">
+                {{ tx.type }}
+              </span>
+            </td>
+            <td class="font-semibold" [ngClass]="tx.type === 'EXPENSE' ? 'text-red' : (tx.type === 'INCOME' ? 'text-emerald' : 'text-cyan')">
+              {{ tx.type === 'EXPENSE' ? '-' : (tx.type === 'INCOME' ? '+' : '') }}₹{{ tx.amount | number:'1.2-2' }}
+            </td>
+            <td class="text-right actions-cell">
+              <button (click)="openEditModal(tx)" class="btn-action edit" title="Edit">
+                <!-- Pencil -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button (click)="deleteTransaction(tx.id)" class="btn-action delete" title="Delete">
+                <!-- Trash -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages > 1" class="pagination-panel">
+      <button
+        (click)="changePage(filters.page - 1)"
+        [disabled]="filters.page === 0"
+        class="btn-pagination"
+      >
+        Previous
+      </button>
+      <span class="page-indicator">Page {{ filters.page + 1 }} of {{ totalPages }}</span>
+      <button
+        (click)="changePage(filters.page + 1)"
+        [disabled]="filters.page === totalPages - 1"
+        class="btn-pagination"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div class="modal-overlay" *ngIf="showModal">
+    <div class="modal-card glass-panel">
+      <div class="modal-header">
+        <h2 class="modal-title">{{ isEditMode ? 'Edit Transaction' : 'Add Transaction' }}</h2>
+        <button (click)="closeModal()" class="close-btn">&times;</button>
+      </div>
+
+      <form (ngSubmit)="saveTransaction()">
+        <div *ngIf="modalErrorMessage" class="alert-message danger">
+          {{ modalErrorMessage }}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="form-control" [(ngModel)]="txForm.type" name="type" (change)="onTypeChange()" required>
+            <option value="INCOME">Income</option>
+            <option value="EXPENSE">Expense</option>
+            <option value="TRANSFER">Transfer</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            Category
+            <span class="new-category-link" (click)="openCategoryModal()">+ New Category</span>
+          </label>
+          <select class="form-control" [(ngModel)]="txForm.categoryId" name="categoryId" required>
+            <option value="" disabled>Select a category...</option>
+            <option *ngFor="let cat of filteredCategories" [value]="cat.id.toString()">
+              {{ cat.name }}
+            </option>
+          </select>
+          <p *ngIf="filteredCategories.length === 0" class="form-hint">
+            No categories for this type yet. <span class="new-category-link" (click)="openCategoryModal()">Create one</span>.
+          </p>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label class="form-label">Amount (₹)</label>
+            <input
+              type="number"
+              class="form-control"
+              placeholder="0.00"
+              step="0.01"
+              [(ngModel)]="txForm.amount"
+              name="amount"
+              required
+            />
+          </div>
+
+          <div class="form-group flex-1">
+            <label class="form-label">Date</label>
+            <input
+              type="date"
+              class="form-control"
+              [(ngModel)]="txForm.date"
+              name="date"
+              required
+            />
+          </div>
+        </div>
+
+
+
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="e.g. Whole Foods"
+            [(ngModel)]="txForm.description"
+            name="description"
+          />
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" (click)="closeModal()" class="btn-secondary">Cancel</button>
+          <button type="submit" class="btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Custom Category Modal -->
+  <div class="modal-overlay" *ngIf="showCategoryModal">
+    <div class="modal-card glass-panel small-modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Create Custom Category</h2>
+        <button (click)="closeCategoryModal()" class="close-btn">&times;</button>
+      </div>
+
+      <form (ngSubmit)="saveCategory()">
+        <div class="form-group">
+          <label class="form-label">Category Name</label>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="e.g. Gym Membership"
+            [(ngModel)]="catForm.name"
+            name="catName"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Transaction Type</label>
+          <select class="form-control" [(ngModel)]="catForm.type" name="catType" required>
+            <option value="EXPENSE">Expense</option>
+            <option value="INCOME">Income</option>
+            <option value="TRANSFER">Transfer</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" (click)="closeCategoryModal()" class="btn-secondary">Cancel</button>
+          <button type="submit" class="btn-primary">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

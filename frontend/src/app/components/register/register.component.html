@@ -1,0 +1,115 @@
+<div class="register-wrapper fade-in">
+  <div class="register-card glass-panel">
+    <div class="register-header">
+      <h1 class="gradient-text brand-title">WealthWise</h1>
+      <p class="register-subtitle">Create your personal financial dashboard</p>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" #registerForm="ngForm">
+      <div *ngIf="errorMessage" class="alert-message danger">
+        {{ errorMessage }}
+      </div>
+      <div *ngIf="successMessage" class="alert-message success">
+        {{ successMessage }}
+      </div>
+
+      <div class="form-row">
+        <div class="form-group flex-1">
+          <label for="firstName" class="form-label">First Name</label>
+          <input
+            type="text"
+            id="firstName"
+            name="firstName"
+            class="form-control"
+            placeholder="John"
+            [(ngModel)]="details.firstName"
+            required
+            #firstNameField="ngModel"
+          />
+          <div *ngIf="firstNameField.touched && firstNameField.invalid" class="validation-message">
+            Required.
+          </div>
+        </div>
+
+        <div class="form-group flex-1">
+          <label for="lastName" class="form-label">Last Name</label>
+          <input
+            type="text"
+            id="lastName"
+            name="lastName"
+            class="form-control"
+            placeholder="Doe"
+            [(ngModel)]="details.lastName"
+            required
+            #lastNameField="ngModel"
+          />
+          <div *ngIf="lastNameField.touched && lastNameField.invalid" class="validation-message">
+            Required.
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email" class="form-label">Email Address</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          class="form-control"
+          placeholder="john.doe@example.com"
+          [(ngModel)]="details.email"
+          required
+          email
+          #emailField="ngModel"
+        />
+        <div *ngIf="emailField.touched && emailField.invalid" class="validation-message">
+          Please enter a valid email address.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password" class="form-label">Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          class="form-control"
+          placeholder="Min 6 characters"
+          [(ngModel)]="details.password"
+          required
+          minlength="6"
+          #passwordField="ngModel"
+        />
+        <div *ngIf="passwordField.touched && passwordField.invalid" class="validation-message">
+          Password must be at least 6 characters.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword" class="form-label">Confirm Password</label>
+        <input
+          type="password"
+          id="confirmPassword"
+          name="confirmPassword"
+          class="form-control"
+          placeholder="••••••••"
+          [(ngModel)]="details.confirmPassword"
+          required
+          #confirmField="ngModel"
+        />
+        <div *ngIf="confirmField.touched && details.password !== details.confirmPassword" class="validation-message">
+          Passwords do not match.
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary w-full" [disabled]="registerForm.invalid || loading">
+        {{ loading ? 'Creating Account...' : 'Get Started' }}
+      </button>
+    </form>
+
+    <div class="register-footer">
+      <span>Already have an account?</span>
+      <a routerLink="/login" class="link-login">Sign In</a>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,134 @@
+<div class="profile-container fade-in">
+  <div class="profile-header">
+    <h1 class="page-title">Profile Settings</h1>
+    <p class="page-subtitle">Manage your personal information and account preferences</p>
+  </div>
+
+  <div *ngIf="userProfile" class="profile-grid">
+    <!-- Left Column: Details & Data Export -->
+    <div class="profile-column">
+      <div class="profile-section glass-panel">
+        <h3 class="section-title">Personal Details</h3>
+        
+        <form (ngSubmit)="updateProfile()">
+          <div *ngIf="profileSuccess" class="alert-message success">
+            {{ profileSuccess }}
+          </div>
+          <div *ngIf="profileError" class="alert-message danger">
+            {{ profileError }}
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Email Address (Read-only)</label>
+            <input type="text" class="form-control disabled" [value]="userProfile.email" disabled />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="firstName" class="form-label">First Name</label>
+              <input
+                type="text"
+                id="firstName"
+                class="form-control"
+                [(ngModel)]="profileForm.firstName"
+                name="firstName"
+                required
+              />
+            </div>
+            
+            <div class="form-group flex-1">
+              <label for="lastName" class="form-label">Last Name</label>
+              <input
+                type="text"
+                id="lastName"
+                class="form-control"
+                [(ngModel)]="profileForm.lastName"
+                name="lastName"
+                required
+              />
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary w-full" [disabled]="loadingProfile">
+            {{ loadingProfile ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </form>
+      </div>
+
+      <div class="profile-section glass-panel">
+        <h3 class="section-title">Data Management</h3>
+        <p class="section-desc">Download all your transactions and budget mappings to a comma-separated values (CSV) sheet.</p>
+        <button (click)="exportTransactions()" class="btn-secondary w-full d-flex justify-center items-center gap-8">
+          <span>📥</span> Export Transactions (.CSV)
+        </button>
+      </div>
+    </div>
+
+    <!-- Right Column: Password & Deactivation -->
+    <div class="profile-column">
+      <div class="profile-section glass-panel">
+        <h3 class="section-title">Security Settings</h3>
+        
+        <form (ngSubmit)="changePassword()">
+          <div *ngIf="pwdSuccess" class="alert-message success">
+            {{ pwdSuccess }}
+          </div>
+          <div *ngIf="pwdError" class="alert-message danger">
+            {{ pwdError }}
+          </div>
+
+          <div class="form-group">
+            <label for="oldPassword" class="form-label">Current Password</label>
+            <input
+              type="password"
+              id="oldPassword"
+              class="form-control"
+              placeholder="••••••••"
+              [(ngModel)]="pwdForm.oldPassword"
+              name="oldPassword"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="newPassword" class="form-label">New Password</label>
+            <input
+              type="password"
+              id="newPassword"
+              class="form-control"
+              placeholder="Min 6 characters"
+              [(ngModel)]="pwdForm.newPassword"
+              name="newPassword"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="confirmNewPassword" class="form-label">Confirm New Password</label>
+            <input
+              type="password"
+              id="confirmNewPassword"
+              class="form-control"
+              placeholder="••••••••"
+              [(ngModel)]="pwdForm.confirmNewPassword"
+              name="confirmNewPassword"
+              required
+            />
+          </div>
+
+          <button type="submit" class="btn-primary w-full" [disabled]="loadingPwd">
+            {{ loadingPwd ? 'Changing...' : 'Change Password' }}
+          </button>
+        </form>
+      </div>
+
+      <div class="profile-section glass-panel danger-border">
+        <h3 class="section-title text-red">Danger Zone</h3>
+        <p class="section-desc">Deactivating your account will block login permissions immediately. This action cannot be undone.</p>
+        <button (click)="deactivateAccount()" class="btn-danger w-full">
+          Deactivate My Account
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
