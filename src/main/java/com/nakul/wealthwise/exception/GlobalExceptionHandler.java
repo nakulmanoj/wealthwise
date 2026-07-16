@@ -1,5 +1,6 @@
 package com.nakul.wealthwise.exception;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -43,18 +45,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
 
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<Map<String, String>> handleBadCredentialsException(BadCredentialsException ex) {
+    /**
+     * Generic "wrong credentials" response — intentionally vague so attackers
+     * cannot tell whether the email or the password was wrong (prevents
+     * user enumeration via error message differences).
+     */
+    @ExceptionHandler({BadCredentialsException.class, UsernameNotFoundException.class})
+    public ResponseEntity<Map<String, String>> handleAuthenticationExceptions(Exception ex) {
         Map<String, String> errors = new HashMap<>();
         errors.put("error", "Invalid email or password");
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errors);
-    }
-
-    @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleUsernameNotFoundException(UsernameNotFoundException ex) {
-        Map<String, String> errors = new HashMap<>();
-        errors.put("error", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errors);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -68,10 +68,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
 
+    /**
+     * Catch-all handler — logs the full exception server-side for debugging
+     * but returns only a generic message to the client so internal details
+     * (stack traces, DB schema hints, class names) are never exposed.
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGeneralExceptions(Exception ex) {
+        log.error("Unhandled exception: {}", ex.getMessage(), ex);
         Map<String, String> errors = new HashMap<>();
-        errors.put("error", "An unexpected error occurred: " + ex.getMessage());
+        errors.put("error", "An unexpected error occurred. Please try again later.");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errors);
     }
 }

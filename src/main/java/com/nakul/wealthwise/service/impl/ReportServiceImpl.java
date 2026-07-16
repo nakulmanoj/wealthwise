@@ -97,15 +97,41 @@ public class ReportServiceImpl implements ReportService {
 
         for (Transaction t : transactions) {
             String categoryName = t.getCategory() != null ? t.getCategory().getName() : "N/A";
-            String cleanDesc = t.getDescription() != null ? "\"" + t.getDescription().replace("\"", "\"\"") + "\"" : "";
+            String description  = t.getDescription() != null ? t.getDescription() : "";
+
             writer.println(String.format("%d,%s,%s,%s,%.2f,%s",
                     t.getId(),
                     t.getDate(),
                     t.getType(),
-                    categoryName,
+                    sanitizeCsvField(categoryName),
                     t.getAmount(),
-                    cleanDesc
+                    sanitizeCsvField(description)
             ));
         }
+    }
+
+    /**
+     * Prevents CSV formula injection (a.k.a. CSV injection / Excel macro injection).
+     *
+     * <p>Spreadsheet applications (Excel, LibreOffice Calc, Google Sheets) treat cells
+     * that start with {@code =}, {@code +}, {@code -}, or {@code @} as formulas.
+     * A malicious category name such as {@code =CMD|'/C calc'!A0} could execute
+     * arbitrary commands when the victim opens the exported file.
+     *
+     * <p>The fix prefixes any such value with a tab character ({@code \t}), which
+     * causes spreadsheets to treat it as plain text while keeping it human-readable.
+     * The value is also always quoted so commas inside it don't break the CSV structure.
+     */
+    private String sanitizeCsvField(String value) {
+        if (value == null || value.isEmpty()) return "\"\"";
+        // Strip any leading dangerous formula characters
+        String safe = value;
+        if (safe.charAt(0) == '=' || safe.charAt(0) == '+' ||
+            safe.charAt(0) == '-' || safe.charAt(0) == '@') {
+            safe = "\t" + safe;
+        }
+        // Escape embedded double-quotes per RFC 4180
+        safe = safe.replace("\"", "\"\"");
+        return "\"" + safe + "\"";
     }
 }
