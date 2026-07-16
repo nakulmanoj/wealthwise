@@ -6,8 +6,8 @@ services:
     container_name: wealthwise-db
     environment:
       POSTGRES_DB: wealthwise
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: rithwik1234
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     ports:
       - "5432:5432"
     volumes:
@@ -33,13 +33,15 @@ services:
       - "8080:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/wealthwise
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: rithwik1234
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_CACHE_TYPE: redis
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      APPLICATION_MARKET_FINNHUB_TOKEN: demo
+      APPLICATION_SECURITY_JWT_SECRET_KEY: ${JWT_SECRET:?JWT_SECRET is required}
+      APPLICATION_MARKET_FINNHUB_TOKEN: ${FINNHUB_TOKEN:?FINNHUB_TOKEN is required}
+      APPLICATION_CORS_ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost}
     depends_on:
       db:
         condition: service_healthy
