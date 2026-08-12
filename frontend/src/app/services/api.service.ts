@@ -7,7 +7,7 @@ import { Observable, tap } from 'rxjs';
 })
 export class ApiService {
   private http = inject(HttpClient);
-  private baseUrl = '/api'; // Proxy will route this to localhost:8080
+  private baseUrl = 'https://wealthwise-backend.onrender.com/api';
 
   // --- AUTHENTICATION ---
   login(credentials: any): Observable<any> {
